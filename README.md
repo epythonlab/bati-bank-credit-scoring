@@ -2,7 +2,8 @@
 
 A machine learning model developed to predict credit risk and assign credit scores, supporting data-driven lending decisions for Bati Bank's Buy-Now-Pay-Later (BNPL) service in collaboration with an eCommerce platform.
 
-Project Directory Structure
+## Project Directory Structure
+
 The repository is organized into the following directories:
 
 `.github/workflows/`: Contains configurations for GitHub Actions, enabling continuous integration and automated testing.
@@ -18,6 +19,7 @@ The repository is organized into the following directories:
 
 
 ## Installation Instructions
+
 To run the project locally, follow these steps:
 
 1. Clone the Repository:
@@ -28,13 +30,18 @@ To run the project locally, follow these steps:
 >>>>
 
 2. Set up the Virtual Environment:
+>>>
 
-`python3 -m venv .venv`
-`source .venv/bin/activate  # For Windows: .venv\Scripts\activate`
-
+    python3 -m venv .venv
+    # for Linux/MacOS
+    source .venv/bin/activate  
+    # For Windows: 
+    .venv\Scripts\activate`
+>>>
 3. Install Dependencies:
-
-`pip install -r requirements.txt`
+>>>
+    pip install -r requirements.txt
+>>>
 
 ## Contributing
  We welcome contributions to improve the project. Please follow the steps below to contribute:
