@@ -28,7 +28,7 @@ To run the project locally, follow these steps:
 >>>>
     git clone https://github.com/epythonlab/bati-bank-credit-scoring.git`
 
-   cd bati-bank-credit-scoring
+    cd bati-bank-credit-scoring
 >>>>
 
 2. Set up the Virtual Environment:
