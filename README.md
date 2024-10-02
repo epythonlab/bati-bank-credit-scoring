@@ -10,6 +10,8 @@ The repository is organized into the following directories:
 
 `.vscode/`: Configuration files for the Visual Studio Code editor, optimizing the development environment.
 
+`api`: Contains the implementation of the machine learning model API, allowing interaction with the model through RESTful endpoints.
+
 `notebooks/`: Jupyter notebooks used for tasks such as data exploration, feature engineering, and preliminary modeling.
 
 `scripts/`: Python scripts for data preprocessing, feature extraction, and the implementation of the credit scoring model.
@@ -30,15 +32,22 @@ To run the project locally, follow these steps:
 >>>>
 
 2. Set up the Virtual Environment:
->>>
 
-    python3 -m venv .venv
-    # for Linux/MacOS
-    source .venv/bin/activate  
-    # For Windows: 
-    .venv\Scripts\activate`
+Create a virtual environment to manage the project's dependencies:
+
+**For Linux/MacOS**
+>>>
+python3 -m venv .venv
+source .venv/bin/activate  
+>>>
+**For Windows:**
+>>>
+python -m venv .venv
+.venv\Scripts\activate
 >>>
 3. Install Dependencies:
+
+Install the required Python packages by running:
 >>>
     pip install -r requirements.txt
 >>>
