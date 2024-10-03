@@ -181,52 +181,23 @@ class CreditRiskEDA:
         plt.title('Missing Values Heatmap', fontsize=14)
         plt.show()
 
-    def detect_outliers(self):
-        """Detect outliers using box plots for numerical features."""
-        num_cols = self.df.select_dtypes(include=[np.number]).columns
+    def detect_outliers(self, cols):
+        """
+        Function to plot boxplots for numerical features to detect outliers.
+        
+        Parameters:
+        -----------
+        df : pandas.DataFrame
+            The DataFrame containing the dataset to be analyzed.
+        numerical_cols : list
+            List of numerical columns to plot.
+        """
+        # num_cols = self.df.select_dtypes(include=[np.number]).columns
         plt.figure(figsize=(15, 10))
-        for i, col in enumerate(num_cols, 1):
+        for i, col in enumerate(cols, 1):
             plt.subplot(3, 3, i)
             sns.boxplot(y=self.df[col], color='orange')
             plt.title(f'Boxplot of {col}', fontsize=12)
         plt.tight_layout()
         plt.show()
-
-# Function to run the entire EDA process
-def run_full_eda(file_path: str):
-    """
-    Run the full EDA process on the dataset by loading the data and performing 
-    the necessary analysis and visualizations.
-
-    Parameters:
-    -----------
-    file_path : str
-        The path to the dataset file.
-    """
-    df = load_data(file_path)
-    
-    if not df.empty:
-        eda = CreditRiskEDA(df)
-        
-        # Perform EDA tasks
-        print("\n--- Data Overview ---")
-        eda.data_overview()
-        
-        print("\n--- Summary Statistics ---")
-        eda.summary_statistics()
-        
-        print("\n--- Numerical Feature Distributions ---")
-        eda.plot_numerical_distribution()
-        
-        print("\n--- Categorical Feature Distributions ---")
-        eda.plot_categorical_distribution()
-        
-        print("\n--- Correlation Analysis ---")
-        eda.correlation_analysis()
-        
-        print("\n--- Missing Values ---")
-        eda.check_missing_values()
-        
-        print("\n--- Outlier Detection ---")
-        eda.detect_outliers()
 
