@@ -4,30 +4,10 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import math
 
-# Load data function
-def load_data(file_path: str) -> pd.DataFrame:
-    """
-    Load dataset from a CSV file and return a DataFrame.
-    
-    Parameters:
-    -----------
-    file_path : str
-        The path to the dataset file.
-        
-    Returns:
-    --------
-    pd.DataFrame
-        Loaded dataset in a pandas DataFrame format.
-    """
-    try:
-        df = pd.read_csv(file_path)
-        print(f"Data successfully loaded from {file_path}")
-        print(f"Dataset contains {df.shape[0]} rows and {df.shape[1]} columns.\n")
-        return df
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
-        return pd.DataFrame()  # Return empty DataFrame in case of failure
+# Set the aesthetic style of the plots
+sns.set(style="whitegrid")
 
 # Define the CreditRiskEDA class
 class CreditRiskEDA:
@@ -83,12 +63,62 @@ class CreditRiskEDA:
         
         return summary_stats
     
-    def plot_numerical_distribution(self):
-        """Plot the distribution of numerical features."""
-        num_cols = self.df.select_dtypes(include=[np.number]).columns
-        self.df[num_cols].hist(figsize=(15, 10), bins=20, color='blue', edgecolor='black')
-        plt.suptitle('Numerical Feature Distributions', fontsize=16)
+    def plot_numerical_distribution(self, cols):
+        """
+        Function to plot multiple histograms in a grid layout.
+
+        Parameters:
+        -----------
+        df : pandas.DataFrame
+            The DataFrame containing the dataset.
+        cols : list
+            List of numeric columns to plot.
+        n_rows : int
+            Number of rows in the grid.
+        n_cols : int
+            Number of columns in the grid.
+        """
+
+        # Select numeric columns
+        n_cols = len(cols)
+
+        # Automatically determine grid size (square root method)
+        n_rows = math.ceil(n_cols**0.5)
+        n_cols = math.ceil(n_cols / n_rows)
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(10, 6))
+        axes = axes.flatten()
+
+        for i, col in enumerate(cols):
+            sns.histplot(self.df[col], bins=15, kde=True, color='skyblue', edgecolor='black', ax=axes[i])
+            axes[i].set_title(f'Distribution of {col}', fontsize=14)
+            axes[i].set_xlabel(col, fontsize=12)
+            axes[i].set_ylabel('Frequency', fontsize=12)
+            axes[i].axvline(self.df[col].mean(), color='red', linestyle='dashed', linewidth=1)
+            axes[i].axvline(self.df[col].median(), color='green', linestyle='dashed', linewidth=1)
+            axes[i].legend({'Mean': self.df[col].mean(), 'Median': self.df[col].median()})
+
+        # Hide any unused subplots
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
+
+        plt.tight_layout()
         plt.show()
+        
+    # Function to plot skewness for each numerical feature
+    def plot_skewness(self):
+        df = self.df.select_dtypes(include='number')
+        skewness = df.skew().sort_values(ascending=False)
+        
+        plt.figure(figsize=(10, 4))
+        sns.barplot(x=skewness.index, y=skewness.values, hue=skewness.index, legend=False, palette="coolwarm")
+        plt.title("Skewness of Numerical Features", fontsize=16)
+        plt.xlabel("Features", fontsize=12)
+        plt.ylabel("Skewness", fontsize=12)
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
         
     def plot_categorical_distribution(self):
         """Plot the distribution of categorical features."""
