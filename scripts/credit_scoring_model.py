@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 class CreditScoreRFMS:
     """
@@ -68,17 +69,41 @@ class CreditScoreRFMS:
 
         return self.rfms_data
 
-    def visualize_rfms(self):
+    def plot_pairplot(self, rfms_df):
         """
-        Plots a 3D scatter plot of Recency, Frequency, and Monetary values for visual analysis.
+        Pair plot to visualize relationships between Recency, Frequency, and Monetary.
         """
-        fig = plt.figure(figsize=(10, 7))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(self.rfms_data['Recency'], self.rfms_data['Frequency'], self.rfms_data['Monetary'], c='b', marker='o')
-        ax.set_xlabel('Recency')
-        ax.set_ylabel('Frequency')
-        ax.set_zlabel('Monetary')
-        plt.title('RFMS Space Visualization')
+        sns.pairplot(rfms_df[['Recency', 'Frequency', 'Monetary']])
+        plt.suptitle('Pair Plot of RFMS Variables')
+        plt.show()
+
+
+    def plot_heatmap(self, rfms_df):
+        """
+        Heatmap to visualize correlations between RFMS variables.
+        """
+        corr = rfms_df[['Recency', 'Frequency', 'Monetary']].corr()
+        sns.heatmap(corr, annot=True)
+        plt.title('Correlation Matrix of RFMS Variables')
+        plt.show()
+
+
+    def plot_histograms(self, rfms_df):
+        """
+        Histograms for Recency, Frequency, and Monetary.
+        """
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        
+        rfms_df['Recency'].hist(bins=20, ax=axes[0])
+        axes[0].set_title('Recency Distribution')
+        
+        rfms_df['Frequency'].hist(bins=20, ax=axes[1])
+        axes[1].set_title('Frequency Distribution')
+        
+        rfms_df['Monetary'].hist(bins=20, ax=axes[2])
+        axes[2].set_title('Monetary Distribution')
+
+        plt.tight_layout()
         plt.show()
 
     def calculate_rfms_score(self):
