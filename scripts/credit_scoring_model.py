@@ -2,123 +2,167 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
+import pytz
+import pandas as pd
 
-class CreditScoreRFMS:
+class CreditScoreRFM:
     """
     A class to calculate Recency, Frequency, Monetary values and perform Weight of Evidence (WoE) binning,
     as well as merging these features into the original feature-engineered dataset.
 
     Attributes:
     -----------
-    rfms_data : pd.DataFrame
-        The dataset containing the transaction information for RFMS calculation.
+    rfm_data : pd.DataFrame
+        The dataset containing the transaction information for RFM calculation.
 
     Methods:
     --------
-    calculate_rfms(current_date):
+    calculate_rfm():
         Calculates Recency, Frequency, and Monetary values for each customer in the dataset.
-    
-    visualize_rfms():
-        Plots a 3D scatter plot of the Recency, Frequency, and Monetary values.
 
-    calculate_rfms_score():
-        Calculates an RFMS score based on Recency, Frequency, and Monetary values.
+    plot_pairplot():
+        Plots a pair plot of the Recency, Frequency, and Monetary values.
 
-    assign_good_bad_labels():
-        Assigns users into "Good" and "Bad" categories based on the RFMS score threshold.
+    plot_heatmap():
+        Plots a heatmap to visualize correlations between RFM variables.
 
-    calc_woe_iv(feature, target):
-        Performs WoE binning for a given feature and returns the WoE-transformed feature along with IV.
+    plot_histograms():
+        Plots histograms for Recency, Frequency, and Monetary values.
 
-    merge_with_feature_data(feature_data):
-        Merges the RFMS dataset with an external feature-engineered dataset using TransactionId and CustomerId.
+    calculate_rfm_score(weight_recency=0.1, weight_frequency=0.5, weight_monetary=0.4):
+        Calculates an RFM score based on Recency, Frequency, and Monetary values with adjustable weights.
+
+    assign_label():
+        Assigns users into "Good" and "Bad" categories based on the RFM score threshold.
     """
 
-    def __init__(self, rfms_data):
+    def __init__(self, rfm_data):
         """
-        Initializes the RFMS class with the provided dataset.
+        Initializes the CreditScoreRFM class with the provided dataset.
         
         Parameters:
         -----------
-        rfms_data : pd.DataFrame
+        rfm_data : pd.DataFrame
             The input dataset containing transaction data.
         """
-        self.rfms_data = rfms_data
+        self.rfm_data = rfm_data
 
-    def calculate_rfms(self):
+    def calculate_rfm(self):
         """
-        Calculates Recency, Frequency, and Monetary values for each customer using the last transaction date as the end date.
+        Calculates Recency, Frequency, and Monetary values for each customer.
+
+        Returns:
+            pandas.DataFrame: A DataFrame with additional columns for Recency, Frequency, Monetary, and RFM scores.
         """
-        # Convert 'TransactionStartTime' to datetime if not already
-        self.rfms_data['TransactionStartTime'] = pd.to_datetime(self.rfms_data['TransactionStartTime'])
 
-        # Determine the end date as the maximum TransactionStartTime
-        end_date = self.rfms_data['TransactionStartTime'].max()
+        # Convert 'TransactionStartTime' to datetime and make it timezone-aware (UTC)
+        self.rfm_data['TransactionStartTime'] = pd.to_datetime(self.rfm_data['TransactionStartTime'])
 
-        # Calculate the last access date (most recent transaction) for each customer
-        self.rfms_data['Last_Access_Date'] = self.rfms_data.groupby('CustomerId')['TransactionStartTime'].transform('max')
+        # Set the end date to the current date and make it timezone-aware (UTC)
+        end_date = pd.Timestamp.utcnow()
 
-        # Calculate Recency: Time in days since the last transaction before the statistical deadline
-        self.rfms_data['Recency'] = (end_date - self.rfms_data['Last_Access_Date']).dt.days
+        # Calculate Recency, Frequency, and Monetary values
+        self.rfm_data['Last_Access_Date'] = self.rfm_data.groupby('CustomerId')['TransactionStartTime'].transform('max')
+        self.rfm_data['Recency'] = (end_date - self.rfm_data['Last_Access_Date']).dt.days
+        self.rfm_data['Frequency'] = self.rfm_data.groupby('CustomerId')['TransactionId'].transform('count')
 
-        # Frequency: Number of transactions per customer
-        self.rfms_data['Frequency'] = self.rfms_data.groupby('CustomerId')['TransactionId'].transform('count')
+        if 'Amount' in self.rfm_data.columns:
+            self.rfm_data['Monetary'] = self.rfm_data.groupby('CustomerId')['Amount'].transform('sum')
+        else:
+            # Handle missing Amount column (e.g., set to 1 for each transaction)
+            self.rfm_data['Monetary'] = 1
 
-        # Monetary: Sum of transaction values per customer
-        self.rfms_data['Monetary'] = self.rfms_data.groupby('CustomerId')['Amount'].transform('sum')
+        # Remove duplicates to create a summary DataFrame for scoring
+        rfm_data = self.rfm_data[['CustomerId', 'Recency', 'Frequency', 'Monetary']].drop_duplicates()
 
-        return self.rfms_data
+        # Calculate RFM scores
+        rfm_data = self.calculate_rfm_scores(rfm_data)
 
-    def plot_pairplot(self, rfms_df):
+        # Assign labels
+        rfm_data = self.assign_label(rfm_data)
+
+        return rfm_data
+    
+    def calculate_rfm_scores(self, rfm_data):
         """
-        Pair plot to visualize relationships between Recency, Frequency, and Monetary.
+        Calculates RFM scores based on the Recency, Frequency, and Monetary values.
+
+        Args:
+            rfm_data (pandas.DataFrame): A DataFrame containing Recency, Frequency, and Monetary values.
+
+        Returns:
+            pandas.DataFrame: A DataFrame with additional columns for RFM scores.
         """
-        sns.pairplot(rfms_df[['Recency', 'Frequency', 'Monetary']])
-        plt.suptitle('Pair Plot of RFMS Variables')
+        
+        # Quantile-based scoring
+        rfm_data['r_quartile'] = pd.qcut(rfm_data['Recency'], 4, labels=['4', '3', '2', '1'])  # Lower recency is better
+        rfm_data['f_quartile'] = pd.qcut(rfm_data['Frequency'], 4, labels=['1', '2', '3', '4'])  # Higher frequency is better
+        rfm_data['m_quartile'] = pd.qcut(rfm_data['Monetary'], 4, labels=['1', '2', '3', '4'])  # Higher monetary is better
+
+        # Calculate overall RFM Score
+        rfm_data['RFM_Score'] = (rfm_data['r_quartile'].astype(int) * 0.1 +
+                                  rfm_data['f_quartile'].astype(int) * 0.45 +
+                                  rfm_data['m_quartile'].astype(int) * 0.45)
+
+        return rfm_data
+    
+    def assign_label(self, rfm_data):
+        """ 
+        Assign 'Good' or 'Bad' based on the RFM Score threshold (e.g., median).
+        
+        Args:
+            rfm_data (pandas.DataFrame): A DataFrame with RFM scores.
+        
+        Returns:
+            pandas.DataFrame: Updated DataFrame with Risk_Label column.
+        """
+        high_threshold = rfm_data['RFM_Score'].quantile(0.75)  # Change to .75 to include moderate users
+        low_threshold = rfm_data['RFM_Score'].quantile(0.25)  # Change to .25 to include moderate users
+        rfm_data['Risk_Label'] = rfm_data['RFM_Score'].apply(lambda x: 'Good' if x >= low_threshold else 'Bad')
+        return rfm_data
+
+
+
+    def plot_pairplot(self):
+        """
+        Creates a pair plot to visualize relationships between Recency, Frequency, and Monetary.
+        """
+        sns.pairplot(self.rfm_data[['Recency', 'Frequency', 'Monetary']])
+        plt.suptitle('Pair Plot of rfm Variables', y=1.02)
         plt.show()
 
-
-    def plot_heatmap(self, rfms_df):
+    def plot_heatmap(self):
         """
-        Heatmap to visualize correlations between RFMS variables.
+        Creates a heatmap to visualize correlations between rfm variables.
         """
-        corr = rfms_df[['Recency', 'Frequency', 'Monetary']].corr()
-        sns.heatmap(corr, annot=True)
-        plt.title('Correlation Matrix of RFMS Variables')
+        corr = self.rfm_data[['Recency', 'Frequency', 'Monetary']].corr()
+        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f")
+        plt.title('Correlation Matrix of rfm Variables')
         plt.show()
 
-
-    def plot_histograms(self, rfms_df):
+    def plot_histograms(self):
         """
-        Histograms for Recency, Frequency, and Monetary.
+        Plots histograms for Recency, Frequency, and Monetary.
         """
         fig, axes = plt.subplots(1, 3, figsize=(18, 6))
-        
-        rfms_df['Recency'].hist(bins=20, ax=axes[0])
+
+        self.rfm_data['Recency'].hist(bins=20, ax=axes[0])
         axes[0].set_title('Recency Distribution')
         
-        rfms_df['Frequency'].hist(bins=20, ax=axes[1])
+        self.rfm_data['Frequency'].hist(bins=20, ax=axes[1])
         axes[1].set_title('Frequency Distribution')
         
-        rfms_df['Monetary'].hist(bins=20, ax=axes[2])
+        self.rfm_data['Monetary'].hist(bins=20, ax=axes[2])
         axes[2].set_title('Monetary Distribution')
 
         plt.tight_layout()
         plt.show()
 
-    def calculate_rfms_score(self):
-        """
-        Calculates the RFMS score for each customer by combining Recency, Frequency, and Monetary values.
-        The weightings can be adjusted as necessary.
-        """
-        self.rfms_data['RFMS_Score'] = self.rfms_data['Frequency'] * 0.5 + self.rfms_data['Monetary'] * 0.4 - self.rfms_data['Recency'] * 0.1
+    
 
-    def assign_good_bad_labels(self):
-        """
-        Assigns users into 'Good' or 'Bad' risk categories based on the median RFMS score.
-        """
-        threshold = self.rfms_data['RFMS_Score'].median()
-        self.rfms_data['Risk_Label'] = self.rfms_data['RFMS_Score'].apply(lambda x: 'Good' if x >= threshold else 'Bad')
+    
+        
 
     def calc_woe_iv(self, feature, target):
         """
@@ -141,10 +185,10 @@ class CreditScoreRFMS:
             The total Information Value (IV) for the feature.
         """
         # Create quantile bins for the feature
-        self.rfms_data['bin'] = pd.qcut(self.rfms_data[feature], q=10, duplicates='drop')
+        self.rfm_data['bin'] = pd.qcut(self.rfm_data[feature], q=10, duplicates='drop')
         
         # Group by bins and calculate good/bad counts
-        grouped = self.rfms_data.groupby('bin')[target].agg(['count', 'sum'])
+        grouped = self.rfm_data.groupby('bin')[target].agg(['count', 'sum'])
         grouped['good'] = grouped['count'] - grouped['sum']
         total_good = grouped['good'].sum()
         total_bad = grouped['sum'].sum()
@@ -158,7 +202,7 @@ class CreditScoreRFMS:
 
     def merge_with_feature_data(self, feature_data):
         """
-        Merges the RFMS dataset with the external feature-engineered dataset using 'TransactionId' and 'CustomerId'.
+        Merges the rfm dataset with the external feature-engineered dataset using 'TransactionId' and 'CustomerId'.
 
         Parameters:
         -----------
@@ -168,11 +212,11 @@ class CreditScoreRFMS:
         Returns:
         --------
         pd.DataFrame:
-            The merged dataset containing both the original features and the RFMS features.
+            The merged dataset containing both the original features and the rfm features.
         """
         # Merge datasets on 'TransactionId' and 'CustomerId'
         merged_data = feature_data.merge(
-            self.rfms_data[['TransactionId', 'CustomerId', 'Recency_WoE', 'Frequency_WoE', 'Monetary_WoE', 'RFMS_Score', 'Risk_Label']],
+            self.rfm_data[['TransactionId', 'CustomerId', 'Recency', 'Frequency', 'Monetary', 'rfm_Score', 'Risk_Label']],
             how='left',
             on=['TransactionId', 'CustomerId']
         )
