@@ -118,7 +118,7 @@ class CreditScoreRFM:
             pandas.DataFrame: Updated DataFrame with Risk_Label column.
         """
         high_threshold = rfm_data['RFM_Score'].quantile(0.75)  # Change to .75 to include moderate users
-        low_threshold = rfm_data['RFM_Score'].quantile(0.25)  # Change to .25 to include moderate users
+        low_threshold = rfm_data['RFM_Score'].quantile(0.5)  # Change to .25 to include moderate users
         rfm_data['Risk_Label'] = rfm_data['RFM_Score'].apply(lambda x: 'Good' if x >= low_threshold else 'Bad')
         return rfm_data
     
