@@ -122,45 +122,34 @@ class CreditScoreRFM:
         rfm_data['Risk_Label'] = rfm_data['RFM_Score'].apply(lambda x: 'Good' if x >= low_threshold else 'Bad')
         return rfm_data
     
-    def calc_woe_iv(self, rfm_df, feature, target):
-        """
-        Calculates Weight of Evidence (WoE) and Information Value (IV) for a given feature and target.
+   
+    def calculate_counts(data):
+        grouped_data = data.groupby('RFM_bin')
+        good_count = grouped_data['Risk_Label'].apply(lambda x: (x == 'Good').sum())
+        bad_count = grouped_data['Risk_Label'].apply(lambda x: (x == 'Bad').sum())
+        
+        return good_count, bad_count
 
-        Parameters:
-        -----------
-        rfm_data : pd.DataFrame
-            The DataFrame containing RFM data.
-        feature : str
-            The feature for which to calculate WoE and IV.
-        target : str
-            The target column (usually binary) indicating good/bad or fraud status.
+    def calculate_woe(good_count, bad_count):
+        total_good = good_count.sum()
+        total_bad = bad_count.sum()
 
-        Returns:
-        --------
-        pd.DataFrame:
-            WoE and IV values for each bin of the feature.
-        float:
-            The total Information Value (IV) for the feature.
-        """
-        # Create quantile bins for the feature
-        rfm_df['bin'] = pd.qcut(rfm_df[feature], q=10, duplicates='drop')
+        # Add epsilon (small value) to avoid log(0) or division by zero
+        epsilon = 1e-10
         
-        # Group by bins and calculate good/bad counts
-        grouped = rfm_df.groupby('bin')[target].agg(['count', 'sum'])
-        grouped['good'] = grouped['count'] - grouped['sum']
-        total_good = grouped['good'].sum()
-        total_bad = grouped['sum'].sum()
+        good_rate = good_count / (total_good + epsilon)  # Avoid division by zero
+        bad_rate = bad_count / (total_bad + epsilon)     # Avoid division by zero
+
+        # Calculate WoE and handle cases where bad_count is zero
+        woe = np.log((good_rate + epsilon) / (bad_rate + epsilon))  # Add epsilon to rates
+        # Calculate IV for each bin
+        iv = ((good_rate - bad_rate) * woe).sum()  # Sum over all bins to get the total IV
         
-        # Calculate WoE and IV with infinite handling
-        grouped['WoE'] = np.where(
-            (total_good > 0) & (total_bad > 0),
-            np.log((grouped['good'] / total_good) / (grouped['sum'] / total_bad)),
-            0  # or np.nan, depending on your preference
-        )
-        grouped['IV'] = ((grouped['good'] / total_good) - (grouped['sum'] / total_bad)) * grouped['WoE']
-        iv = grouped['IV'].sum()
+        return woe, iv
+
+
         
-        return grouped[['WoE', 'IV']], iv
+        
 
 
 

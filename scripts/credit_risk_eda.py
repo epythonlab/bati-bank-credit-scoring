@@ -30,7 +30,7 @@ class CreditRiskEDA:
         print("\nColumn Data Types:")
         print(self.df.dtypes)
         print("\nFirst Five Rows:")
-        display(self.df.head())
+        print(self.df.head())
         print("\nMissing Values Overview:")
         print(self.df.isnull().sum())
         
@@ -163,12 +163,19 @@ class CreditRiskEDA:
         plt.show()
 
     def correlation_analysis(self):
-        """Generate and visualize the correlation matrix."""
-        corr_matrix = self.df.corr()
+        """Generate and visualize the correlation matrix for numeric columns only."""
+        numeric_df = self.df.select_dtypes(include=['number'])
+        
+        if numeric_df.empty:
+            print("No numeric columns available for correlation analysis.")
+            return
+        
+        corr_matrix = numeric_df.corr()
         plt.figure(figsize=(10, 8))
         sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
         plt.title('Correlation Matrix', fontsize=16)
         plt.show()
+
     
     def check_missing_values(self):
         """Check for missing values and visualize the missing data pattern."""
