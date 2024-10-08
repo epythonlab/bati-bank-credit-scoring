@@ -76,11 +76,11 @@ class CreditScoreRFM:
         # Remove duplicates to create a summary DataFrame for scoring
         rfm_data = self.rfm_data[['CustomerId', 'Recency', 'Frequency', 'Monetary']].drop_duplicates()
 
-        # Calculate RFM scores
-        rfm_data = self.calculate_rfm_scores(rfm_data)
+        # # Calculate RFM scores
+        # rfm_data = self.calculate_rfm_scores(rfm_data)
 
-        # Assign labels
-        rfm_data = self.assign_label(rfm_data)
+        # # Assign labels
+        # rfm_data = self.assign_label(rfm_data)
 
         return rfm_data
     
@@ -200,31 +200,3 @@ class CreditScoreRFM:
         plt.tight_layout()
         plt.show()
 
-    
-
-    
-        
-
-    
-
-    def merge_with_feature_data(self, feature_data):
-        """
-        Merges the rfm dataset with the external feature-engineered dataset using 'TransactionId' and 'CustomerId'.
-
-        Parameters:
-        -----------
-        feature_data : pd.DataFrame
-            The feature-engineered dataset to merge with.
-        
-        Returns:
-        --------
-        pd.DataFrame:
-            The merged dataset containing both the original features and the rfm features.
-        """
-        # Merge datasets on 'TransactionId' and 'CustomerId'
-        merged_data = feature_data.merge(
-            self.rfm_data[['TransactionId', 'CustomerId', 'Recency', 'Frequency', 'Monetary', 'rfm_Score', 'Risk_Label']],
-            how='left',
-            on=['TransactionId', 'CustomerId']
-        )
-        return merged_data
